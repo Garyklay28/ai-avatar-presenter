@@ -19,6 +19,11 @@ if ! command -v node >/dev/null; then
   osascript -e 'display dialog "Node.js 20.12 이상이 필요합니다.\n需要 Node.js 20.12+\n\nhttps://nodejs.org" buttons {"OK"} with icon caution'
   open "https://nodejs.org/ko/download"; exit 1
 fi
+# process.loadEnvFile 때문에 Node 20.12 이상 필요 / 因为用了 process.loadEnvFile，需要 Node 20.12+
+if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>20||(a===20&&b>=12)?0:1)'; then
+  osascript -e "display dialog \"Node.js $(node -v) 는 너무 오래됐어요. 20.12 이상이 필요합니다.\n Node.js 版本太旧，需要 20.12+\n\nhttps://nodejs.org\" buttons {\"OK\"} with icon caution"
+  open "https://nodejs.org/ko/download"; exit 1
+fi
 [ -d node_modules ] || npm install --omit=dev >>"$LOG" 2>&1
 exec node server.js --open --quit-with-window >>"$LOG" 2>&1
 SH

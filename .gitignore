@@ -5,3 +5,5 @@ cache/mock-*
 *.log
 cache/tts/
 dist/
+cache/outline-latest.json
+review/*.prev.json

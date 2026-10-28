@@ -54,18 +54,36 @@
     .note input { width: 100%; padding: 6px 10px; font: 13px var(--font); border: 1px dashed #bbb; border-radius: 4px; }
     .meta { font-size: 12px; color: var(--muted); margin-top: 4px; text-align: right; }
     body.only-changed .seg:not(.changed) { display: none; }
+    #mode { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #333; color: #fff; }
+    #mode.is-draft { background: var(--yellow); color: var(--ink); }
+    header .stat b.warn { color: #ff8a8a; }
+    #range { font-size: 12px; color: #ff8a8a; }
+    header button.act { border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    #approve { background: #2fbf4a; color: #fff; }
+    #discard { background: #444; color: #ddd; }
+    .seg__head button[data-act="rewrite"] { border-color: var(--blood); color: var(--blood); }
+    .seg__head button:disabled { opacity: .5; cursor: wait; }
+    .preview { margin-top: 8px; padding: 8px 10px; border: 2px solid var(--key); border-radius: 4px; background: #f0f5ff; font-size: 14px; line-height: 1.65; }
+    .preview b { display: block; font-size: 12px; color: var(--key); margin-bottom: 4px; }
+    .preview .btns { display: flex; gap: 8px; margin-top: 6px; }
+    .preview button { border: 1px solid var(--key); background: #fff; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .preview button.ok { background: var(--key); color: #fff; }
     @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav { position: static; } .cols { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <header>
     <h1>发表稿审阅 · 대본 검토</h1>
+    <span id="mode">—</span>
     <span class="stat">韩文 <b id="kochars">0</b> 字 · 预计 <b id="mins">0</b> 分钟</span>
+    <span id="range" hidden></span>
     <span class="stat">已修改 <b id="nchg">0</b> 段</span>
     <span class="grow"></span>
     <label><input type="checkbox" id="only"> 只看已修改</label>
     <span id="saved">—</span>
     <button id="save">保存 (⌘S)</button>
+    <button id="approve" class="act" hidden>整份批准 · 초안 전체 승인</button>
+    <button id="discard" class="act" hidden>放弃草稿</button>
   </header>
 
   <div class="layout">
@@ -81,6 +99,7 @@
       { id: 'm3', zh: '③ 剧照图片', ko: 'Images', test: (s) => s.startsWith('images') },
       { id: 'm4', zh: '④ 课程作业 W2–W9', ko: 'Projects', test: (s) => s === 'projects-head' || /^w\d/.test(s) || s === 'extra' },
       { id: 'm5', zh: '⑤ 总结与提问', ko: '마무리', test: (s) => s === 'contact' },
+      { id: 'm6', zh: '⑥ 其他区域', ko: '기타', test: () => false }, // 위에 안 맞는 구역 / 不属于以上的区域
     ]
     const LABEL = {
       hero: '首页开场', 'profile-intro': '简介', 'profile-education': '学历', 'profile-awards': '获奖', 'profile-work-experience': '工作经历', 'profile-film-credits': '影片经历',
@@ -90,20 +109,43 @@
       w07: 'W7 字幕翻译技能包', w08: 'W8 Figma 画布·宣传册·名片', w09: 'W9 Next Big Thing', extra: '个人技能 NBA·足球 PDF', contact: '总结 · 提问 · 致谢',
     }
     const $ = (s, el = document) => el.querySelector(s)
-    let data, cpm = 505, timer = null, dirty = false
+    // doc = 지금 보는 대본: 초안이 있으면 초안, 없으면 확정 대본 (고치면 서버가 초안을 만듦)
+    // doc = 当前显示的讲稿：有草稿显示草稿，否则显示定稿（一修改服务器就建草稿）
+    let data, doc, mode, cpm = 505, range = [10.5, 11.5], timer = null, dirty = false
 
     const isChanged = (g) => g.zh !== g.zhOriginal || g.ko !== g.koOriginal || (g.note || '').trim() !== ''
+    const label = (stop) => LABEL[stop] || doc.stops?.find((s) => s.id === stop)?.title || stop
+    const fmt = (m) => `${Math.floor(m)}:${String(Math.round((m % 1) * 60)).padStart(2, '0')}`
+
+    function renderMode() {
+      const d = data.draft
+      const a = data.approved
+      $('#mode').classList.toggle('is-draft', mode === 'draft')
+      $('#mode').textContent = mode === 'draft'
+        ? `草稿 · 대본 초안 (${d.source === 'generated' ? '新生成 / 새로 생성' : '修改中 / 수정'} ${new Date(d.createdAt).toLocaleString()}) — 批准后才用于发表`
+        : `定稿 · 확정 대본 ${a?.approvedAt ? new Date(a.approvedAt).toLocaleString() : ''} — 修改会存成草稿`
+      $('#approve').hidden = mode !== 'draft'
+      $('#discard').hidden = mode !== 'draft'
+    }
 
     function stats() {
-      const chars = data.segments.reduce((n, g) => n + g.ko.length, 0)
+      const chars = doc.segments.reduce((n, g) => n + g.ko.length, 0)
+      const mins = chars / cpm
       $('#kochars').textContent = chars.toLocaleString()
-      $('#mins').textContent = (chars / cpm).toFixed(1)
-      $('#nchg').textContent = data.segments.filter(isChanged).length
+      $('#mins').textContent = mins.toFixed(1)
+      // 목표 시간 밖이면 경고만 / 超出目标时长只警告
+      const out = mins < range[0] || mins > range[1]
+      $('#mins').classList.toggle('warn', out)
+      $('#range').hidden = !out
+      $('#range').textContent = `⚠ 目标 ${fmt((range[0] + range[1]) / 2)}（${fmt(range[0])}–${fmt(range[1])}，约 ${Math.round(range[0] * cpm).toLocaleString()}–${Math.round(range[1] * cpm).toLocaleString()} 字）之外，只是提醒`
+      $('#nchg').textContent = doc.segments.filter(isChanged).length
       for (const m of MODULES) {
-        const segs = data.segments.filter((g) => m.test(g.stop))
+        const segs = doc.segments.filter((g) => moduleOf(g.stop) === m)
         const c = segs.reduce((n, g) => n + g.ko.length, 0)
         const chg = segs.filter(isChanged).length
-        $(`#nav-${m.id} small`).innerHTML = `${segs.length} 段 · 约 ${(c / cpm).toFixed(1)} 分钟${chg ? ` · <span class="chg">改 ${chg}</span>` : ''}`
+        const nav = $(`#nav-${m.id}`)
+        if (!nav) continue
+        $('small', nav).innerHTML = `${segs.length} 段 · 约 ${(c / cpm).toFixed(1)} 分钟${chg ? ` · <span class="chg">改 ${chg}</span>` : ''}`
         $(`#${m.id} h2 small`).textContent = `${m.ko} · ${segs.length} 段 · 约 ${(c / cpm).toFixed(1)} 分钟`
       }
     }
@@ -119,15 +161,47 @@
 
     async function save() {
       clearTimeout(timer)
+      if (!dirty) return true
       const res = await fetch('/__api/review', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ segments: data.segments.map(({ i, ko, zh, note }) => ({ i, ko, zh, note })) }),
+        body: JSON.stringify({ segments: doc.segments.map(({ i, ko, zh, note }) => ({ i, ko, zh, note })) }),
       })
       const r = await res.json()
-      if (!res.ok) { $('#saved').textContent = '保存失败'; return }
+      if (!res.ok) { $('#saved').textContent = '保存失败'; return false }
       dirty = false
       $('#saved').classList.remove('dirty')
-      $('#saved').textContent = `已保存 ${new Date(r.savedAt).toLocaleTimeString()}`
+      $('#saved').textContent = `已保存到草稿 ${new Date(r.savedAt).toLocaleTimeString()}`
+      if (mode !== 'draft') {
+        // 확정 대본을 고치면 초안이 생김 / 修改定稿会生成草稿
+        data.draft = { ...doc, createdAt: r.createdAt, source: r.source }
+        doc.createdAt = r.createdAt
+        mode = 'draft'
+        renderMode()
+      }
+      return true
+    }
+
+    async function approve() {
+      if (!(await save())) return
+      const chars = doc.segments.reduce((n, g) => n + g.ko.length, 0)
+      if (!confirm(`把整份草稿批准为定稿？发表会改读这份（${doc.segments.length} 段 · ${chars.toLocaleString()} 字 · 约 ${(chars / cpm).toFixed(1)} 分钟）。\n上一版定稿会备份。\n\n초안 전체를 확정 대본으로 승인할까요?`)) return
+      const res = await fetch('/__api/review/approve', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ createdAt: data.draft.createdAt }) })
+      const r = await res.json()
+      if (!res.ok) return alert(r.error)
+      alert(`已批准 / 승인했어요 ${new Date(r.approvedAt).toLocaleString()}\n${r.stops ? '区域快照已保存 / 구역 스냅샷 저장됨' : '没有区域快照：请先打开一次 App 读取网站，再批准一次 / 스냅샷 없음: 앱을 한 번 켠 뒤 다시 승인하세요'}\n\nApp 需要重新打开（或刷新）才会读新定稿。`)
+      location.reload()
+    }
+
+    async function discard() {
+      if (!confirm('放弃这份草稿？定稿不变。/ 초안을 버릴까요? 확정 대본은 그대로예요.')) return
+      clearTimeout(timer)
+      dirty = false
+      await fetch('/__api/review/discard', { method: 'POST' })
+      location.reload()
+    }
+
+    function moduleOf(stop) {
+      return MODULES.find((m) => m.test(stop)) ?? MODULES[MODULES.length - 1]
     }
 
     function card(g) {
@@ -136,27 +210,32 @@
       el.innerHTML = `
         <div class="seg__head">
           <span class="seg__num">#${g.i + 1}</span>
-          <span class="seg__stop">${LABEL[g.stop] || g.stop}</span>
+          <span class="seg__stop"></span>
           <span class="seg__flag">● 已修改</span>
           <span class="grow"></span>
+          <button data-act="rewrite" title="只改写这一段的韩文，保存前先预览">按中文改写韩文 · 중국어대로 한국어 고치기</button>
           <button data-act="revert">还原本段</button>
         </div>
         <div class="cols">
           <div class="col col--zh"><label>中文（在这里改）</label><textarea data-k="zh"></textarea><div class="orig" data-o="zh"></div></div>
-          <div class="col col--ko"><label>한국어（实际朗读的文字，Claude 会按中文修改来改）</label><textarea data-k="ko"></textarea><div class="orig" data-o="ko"></div>
+          <div class="col col--ko"><label>한국어（实际朗读的文字）</label><textarea data-k="ko"></textarea><div class="orig" data-o="ko"></div>
+            <div class="preview" hidden><b>改写预览 · 미리보기（还没保存）</b><div class="text"></div>
+              <div class="btns"><button class="ok" data-act="apply">应用 · 적용</button><button data-act="cancel">取消 · 취소</button></div></div>
             <div class="meta"></div></div>
         </div>
-        <div class="note"><input data-k="note" placeholder="给 Claude 的说明（可选），例如：这段删掉 / 语气再轻松一点 / 加一句关于…"></div>`
+        <div class="note"><input data-k="note" placeholder="给 Claude 的说明（改写韩文时会一起参考），例如：语气再轻松一点 / 加一句关于…"></div>`
+      $('.seg__stop', el).textContent = label(g.stop)
       const fit = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px' }
       const refresh = () => {
         el.classList.toggle('changed', isChanged(g))
         for (const k of ['zh', 'ko']) {
           const o = $(`[data-o="${k}"]`, el)
-          o.textContent = g[`${k}Original`]
+          o.textContent = g[`${k}Original`] || '（新增段落 · 새로 추가된 문단）'
           o.classList.toggle('has', g[k] !== g[`${k}Original`])
         }
         $('.meta', el).textContent = `${g.ko.length} 字 · 约 ${Math.round(g.ko.length / cpm * 60)} 秒`
       }
+      const setInputs = () => el.querySelectorAll('[data-k]').forEach((input) => { input.value = g[input.dataset.k] || ''; if (input.tagName === 'TEXTAREA') fit(input) })
       el.querySelectorAll('[data-k]').forEach((input) => {
         input.value = g[input.dataset.k] || ''
         input.addEventListener('input', () => {
@@ -168,9 +247,38 @@
       $('[data-act="revert"]', el).onclick = () => {
         if (!confirm(`把第 ${g.i + 1} 段还原成原稿？`)) return
         g.zh = g.zhOriginal; g.ko = g.koOriginal; g.note = ''
-        el.querySelectorAll('[data-k]').forEach((input) => { input.value = g[input.dataset.k]; if (input.tagName === 'TEXTAREA') fit(input) })
-        refresh(); markDirty()
+        setInputs(); refresh(); markDirty()
       }
+      const preview = $('.preview', el)
+      let proposed = ''
+      $('[data-act="rewrite"]', el).onclick = async (e) => {
+        const btn = e.currentTarget
+        btn.disabled = true
+        btn.textContent = '改写中… · 고치는 중…'
+        try {
+          const res = await fetch('/__api/review/rewrite', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ ko: g.ko, zh: g.zh, zhBefore: g.zhOriginal, note: g.note }),
+          })
+          const r = await res.json()
+          if (!res.ok) throw new Error(r.error)
+          proposed = r.ko
+          $('.text', preview).textContent = proposed
+          $('b', preview).textContent = `改写预览 · 미리보기（还没保存） ${proposed.length} 字 · 约 ${Math.round(proposed.length / cpm * 60)} 秒`
+          preview.hidden = false
+        } catch (err) {
+          alert(`改写失败 / 고치기 실패: ${err.message}`)
+        } finally {
+          btn.disabled = false
+          btn.textContent = '按中文改写韩文 · 중국어대로 한국어 고치기'
+        }
+      }
+      $('[data-act="apply"]', el).onclick = () => {
+        g.ko = proposed
+        preview.hidden = true
+        setInputs(); refresh(); markDirty()
+      }
+      $('[data-act="cancel"]', el).onclick = () => { preview.hidden = true }
       requestAnimationFrame(() => el.querySelectorAll('textarea').forEach(fit))
       refresh()
       return el
@@ -179,8 +287,20 @@
     async function boot() {
       data = await (await fetch('/__api/review')).json()
       cpm = data.charsPerMinute || cpm
-      document.title = `发表稿审阅 · ${data.title}`
+      range = data.talkRangeMinutes || range
+      if (data.draft) {
+        mode = 'draft'
+        doc = data.draft
+      } else {
+        // 확정 대본을 그대로 보여 줌: 원문 = 확정 문장 / 显示定稿：原文 = 定稿文字
+        mode = 'approved'
+        doc = { ...data.approved, segments: data.approved.segments.map((g, i) => ({ i, stop: g.stop, koOriginal: g.ko, ko: g.ko, zhOriginal: g.zh ?? '', zh: g.zh ?? '', note: '' })) }
+      }
+      document.title = `发表稿审阅 · ${doc.title}`
+      renderMode()
       for (const m of MODULES) {
+        const segs = doc.segments.filter((g) => moduleOf(g.stop) === m)
+        if (!segs.length && m.id === 'm6') continue
         const a = document.createElement('a')
         a.href = `#${m.id}`; a.id = `nav-${m.id}`
         a.innerHTML = `${m.zh}<small></small>`
@@ -188,18 +308,20 @@
         const sec = document.createElement('section')
         sec.className = 'module'; sec.id = m.id
         sec.innerHTML = `<h2>${m.zh} <small></small></h2>`
-        data.segments.filter((g) => m.test(g.stop)).forEach((g) => sec.appendChild(card(g)))
+        segs.forEach((g) => sec.appendChild(card(g)))
         $('#main').appendChild(sec)
       }
       const help = document.createElement('div')
       help.className = 'help'
-      help.innerHTML = `改中文即可，修改会自动保存。改完后告诉 Claude「稿子改好了」，Claude 会按中文改动更新韩文，并重新检查时长（要求 10–12 分钟）。<br>也可以直接改韩文，或在说明栏写要求。<br><br>중국어만 고치면 자동 저장됩니다. 끝나면 Claude에게 알려 주세요.`
+      help.innerHTML = `发表只读<b>定稿</b>。在这里改的内容都会自动存成<b>草稿</b>，点「整份批准」后才替换定稿（整份替换，不按段混合）。<br>改中文 → 点该段「按中文改写韩文」→ 看预览 → 应用。<br><br>발표는 확정 대본만 읽어요. 여기서 고친 내용은 초안에 저장되고, 「초안 전체 승인」을 눌러야 확정 대본이 바뀌어요.`
       $('#nav').appendChild(help)
-      $('#saved').textContent = data.savedAt ? `上次保存 ${new Date(data.savedAt).toLocaleString()}` : '尚未修改'
+      $('#saved').textContent = doc.savedAt ? `上次保存 ${new Date(doc.savedAt).toLocaleString()}` : mode === 'draft' ? '草稿未修改' : '尚未修改'
       stats()
     }
 
     $('#save').onclick = save
+    $('#approve').onclick = approve
+    $('#discard').onclick = discard
     $('#only').onchange = (e) => document.body.classList.toggle('only-changed', e.target.checked)
     window.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save() } })
     window.addEventListener('beforeunload', (e) => { if (dirty) { save(); e.preventDefault() } })

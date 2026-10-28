@@ -57,10 +57,32 @@ export function createReader(iframe) {
     return text
   }
 
-  /** 사이트 전체를 훑어 구역 목록을 만든다 / 扫描整个网站，生成区域列表 */
+  /** Supabase portfolio_* 응답이 iframe 에 도착할 때까지 기다림 (Resource Timing)
+   *  等待 iframe 收到 Supabase portfolio_* 响应（Resource Timing）
+   *  → 'supabase' 도착 / 已到 · 'error' 실패 응답만 / 只有失败响应 · 'timeout' 응답 없음 / 无响应
+   *  portfolio_assignments 는 평소에도 404 (사이트가 내장 과제 데이터를 씀) → 2xx 가 하나라도 오면 도착으로 본다
+   *  portfolio_assignments 平时就是 404（网站用内置作业数据）→ 只要有一个 2xx 就算到达 */
+  async function waitForData(timeout = 8000) {
+    const t0 = performance.now()
+    for (;;) {
+      const list = win().performance.getEntriesByType('resource').filter((e) => /supabase\.co\/rest\/v1\/portfolio_/.test(e.name))
+      // responseStatus 를 모르는 브라우저(undefined)는 도착으로 취급 / 不支持 responseStatus 的浏览器视为到达
+      if (list.some((e) => e.responseStatus === undefined || (e.responseStatus >= 200 && e.responseStatus < 300))) {
+        await sleep(500) // 도착 뒤 화면이 바뀔 시간 / 留时间让画面更新
+        return 'supabase'
+      }
+      if (performance.now() - t0 > timeout) return list.length ? 'error' : 'timeout'
+      await sleep(100)
+    }
+  }
+
+  /** 사이트 전체를 훑어 구역 목록을 만든다 / 扫描整个网站，生成区域列表
+   *  → { stops, status } status: 'supabase' | 'timeout' | 'error' */
   async function extractOutline(onProgress = () => {}) {
-    await waitFor(() => doc()?.querySelector('.tabs [role=tab]'), 20000)
-    await sleep(1800) // Supabase 콘텐츠가 덮어쓸 시간 / 等 Supabase 内容覆盖
+    // 프록시가 사이트에 못 닿으면 에러 글자만 있는 페이지 (#root 없음) / 代理连不上网站时是只有错误文字的页面（没有 #root）
+    if (!doc()?.getElementById('root')) return { stops: [], status: 'error' }
+    if (!(await waitFor(() => doc()?.querySelector('.tabs [role=tab]'), 20000))) return { stops: [], status: 'error' }
+    const status = await waitForData()
     injectStyle()
     const stops = []
     const add = (s) => stops.push(s)
@@ -119,7 +141,7 @@ export function createReader(iframe) {
 
     await openTab(tabKey(tabButtons()[0]))
     win().scrollTo({ top: 0, behavior: 'instant' })
-    return stops
+    return { stops, status }
   }
 
   let focused = null

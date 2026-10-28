@@ -40,7 +40,7 @@ button { font: inherit; cursor: pointer; }
 .avatar__bubble {
   position: absolute; bottom: calc(100% + 6px); left: 0; width: max-content; max-width: min(440px, 70vw);
   padding: 14px 18px; background: var(--paper); border: 3px solid var(--ink); border-radius: 16px;
-  box-shadow: 6px 6px 0 var(--yellow); font-size: 18px; line-height: 1.5; font-weight: 600; word-break: keep-all;
+  box-shadow: 6px 6px 0 var(--yellow); font-size: 18px; line-height: 1.5; font-weight: 600; word-break: keep-all; white-space: pre-line;
 }
 .avatar__bubble.is-below { bottom: auto; top: calc(100% + 6px); }
 .avatar__badge {
@@ -73,6 +73,10 @@ button { font: inherit; cursor: pointer; }
 .dock__btn--mic.is-on { background: var(--blood); animation: listen 1s infinite; }
 .dock__progress { font: 16px var(--label); letter-spacing: 1px; padding: 0 6px; color: #bbb; min-width: 60px; text-align: center; }
 .dock__sep { width: 1px; height: 24px; background: #444; }
+.dock__btn--lang { min-width: 46px; padding: 10px 10px; }
+.dock__btn--lang.is-other { background: var(--yellow); color: var(--ink); }
+.dock__check { border: 0; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; background: #1f3a1f; color: #9fd29f; }
+.dock__check.is-warn { background: var(--blood); color: #fff; }
 .dock__ask { display: flex; gap: 6px; flex-basis: 100%; padding: 4px 4px 0; }
 .dock__ask input { flex: 1; border: 0; border-radius: 999px; padding: 10px 16px; font-size: 15px; min-width: 260px; }
 
@@ -101,6 +105,8 @@ button { font: inherit; cursor: pointer; }
 .panel__field { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 600; }
 .panel__field select, .panel__field input { display: block; width: 100%; margin-top: 6px; padding: 6px; font: inherit; }
 .panel__hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.panel__warn { margin: -6px 0 12px; padding: 8px 10px; font-size: 12px; line-height: 1.5; white-space: pre-line; background: #fff4f4; border-left: 4px solid var(--blood); color: var(--blood); }
+.panel__list li.is-lost::before { color: var(--blood); content: counter(seg) " · " attr(data-stop) " · 화면 이동 없음"; }
 .panel__qa { margin: 0; padding: 0; list-style: none; }
 .panel__qa li { margin-bottom: 14px; font-size: 14px; line-height: 1.55; }
 .panel__qa .q { font-weight: 700; }
@@ -110,3 +116,21 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- toast ---------- */
 .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 90; max-width: 80vw; padding: 12px 18px; background: var(--blood); color: #fff; font-weight: 600; border-radius: 8px; white-space: pre-line; }
+
+/* ---------- 사이트 점검 / 网站检查 ---------- */
+.check { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; background: rgba(13,13,13,.35); }
+.check__card { width: min(560px, 92vw); max-height: 86vh; overflow: auto; padding: 22px 24px; border: 3px solid var(--ink); background: var(--paper); box-shadow: 10px 10px 0 var(--blood); }
+.check__title { margin: 0 0 10px; font-size: 20px; }
+.check__lead { margin: 0 0 12px; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+.check__lead:empty { display: none; }
+.check__list { margin: 0 0 12px; padding: 0; list-style: none; font-size: 13px; line-height: 1.5; }
+.check__list li { padding: 6px 8px; border-left: 4px solid transparent; margin-bottom: 4px; }
+.check__list .is-relinked { border-left-color: var(--key); background: #f0f5ff; }
+.check__list .is-missing { border-left-color: var(--blood); background: #fff4f4; }
+.check__list .is-added { border-left-color: #bbb; color: var(--muted); }
+.check__note { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+.check__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.check__btn { flex: 1 1 140px; padding: 10px; border: 2px solid var(--ink); background: var(--paper); font-weight: 700; }
+.check__btn:hover { background: #f4f4f4; }
+.check__btn--main { background: var(--yellow); }
+.check__btn--main:hover { background: #ffe14d; }

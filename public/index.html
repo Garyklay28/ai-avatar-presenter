@@ -27,10 +27,12 @@
     <span id="progress" class="dock__progress">0 / 0</span>
     <span class="dock__sep"></span>
     <button id="btn-mic" class="dock__btn dock__btn--mic" title="음성 질문 / 语音提问 (Space)">🎤 질문</button>
+    <button id="btn-lang" class="dock__btn dock__btn--lang" title="질문 언어 한·中·EN / 提问语言 (L)">한</button>
     <button id="btn-type" class="dock__btn" title="글로 질문 / 打字提问 (Enter)">⌨</button>
     <button id="btn-stop" class="dock__btn" title="말 멈추기 / 停止说话 (Esc)">■</button>
     <span class="dock__sep"></span>
     <button id="btn-panel" class="dock__btn" title="대본·설정 / 讲稿·设置">☰</button>
+    <button id="site-check" class="dock__check" title="사이트 점검 / 网站检查" hidden></button>
     <form id="ask-form" class="dock__ask" hidden>
       <input id="ask-input" type="text" placeholder="질문을 입력하세요 / 输入问题" autocomplete="off">
       <button class="dock__btn">보내기</button>
@@ -51,8 +53,10 @@
     <section data-pane="script" class="panel__pane">
       <h3 id="script-title" class="panel__title"></h3>
       <p id="script-meta" class="panel__meta"></p>
+      <p id="script-warn" class="panel__warn" hidden></p>
       <ol id="script-list" class="panel__list"></ol>
-      <button id="btn-regen" class="panel__btn">↻ 대본 다시 만들기 / 重新生成讲稿</button>
+      <button id="btn-review" class="panel__btn">📝 대본 검토 · 승인 / 审阅 · 批准讲稿</button>
+      <button id="btn-regen" class="panel__btn">↻ 새 대본 초안 만들기 / 生成新草稿</button>
     </section>
     <section data-pane="qa" class="panel__pane" hidden>
       <ol id="qa-list" class="panel__qa"></ol>
@@ -70,9 +74,23 @@
         <input id="rate" type="range" min="0.8" max="1.4" step="0.05" value="1.15">
       </label>
       <button id="btn-test-voice" class="panel__btn">🔊 목소리 듣기 / 试听</button>
-      <p class="panel__hint">단축키 / 快捷键 — P 시작·일시정지 · ← → 이전·다음 · Space 음성 질문 · Enter 글 질문 · Esc 멈춤</p>
+      <p class="panel__hint">단축키 / 快捷键 — P 시작·일시정지·이어가기 · ← → 이전·다음 · Space 음성 질문(답변 중이면 끊고 다시 듣기) · L 질문 언어 한·中·EN · Enter 글 질문 · Esc 멈춤</p>
     </section>
   </aside>
+
+  <div id="check" class="check" hidden>
+    <div class="check__card" role="dialog" aria-labelledby="check-title">
+      <h2 id="check-title" class="check__title">사이트 점검 / 网站检查</h2>
+      <p id="check-lead" class="check__lead"></p>
+      <ul id="check-list" class="check__list"></ul>
+      <p class="check__note">발표 시작은 막지 않아요 / 不会阻止开始发表</p>
+      <div class="check__btns">
+        <button id="check-go" class="check__btn check__btn--main">그대로 발표 / 照常发表</button>
+        <button id="check-reread" class="check__btn">사이트 다시 읽기 / 重新读取网站</button>
+        <button id="check-review" class="check__btn">검토 페이지 열기 / 打开审阅页</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast" hidden></div>
 

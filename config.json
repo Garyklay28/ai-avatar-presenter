@@ -1,5 +1,6 @@
 {
   "talkMinutes": 11,
+  "talkRangeMinutes": [10.5, 11.5],
   "charsPerMinute": 505,
   "persona": {
     "avatarName": "슬레이트",

@@ -125,8 +125,10 @@ export function sttSupported() {
   return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
 }
 
-/** 한 번 듣기: 말이 끝나면 최종 문장을 resolve / 听一次：说完后 resolve 最终文本 */
-export function listenOnce({ lang = 'ko-KR', onInterim, silenceMs = 1800 } = {}) {
+/** 한 번 듣기: 말이 끝나면 최종 문장을 resolve / 听一次：说完后 resolve 最终文本
+ *  1.8초 침묵이면 끝, 9초 동안 말이 없으면 빈 문자열, 최대 15초가 되면 들은 말로 끝 (시끄러운 교실 대비)
+ *  静音 1.8 秒结束；9 秒无声返回空；最长 15 秒，到时用已听到的内容结束（应对嘈杂教室） */
+export function listenOnce({ lang = 'ko-KR', onInterim, silenceMs = 1800, maxMs = 15000 } = {}) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition
   const rec = new SR()
   rec.lang = lang
@@ -153,10 +155,11 @@ export function listenOnce({ lang = 'ko-KR', onInterim, silenceMs = 1800 } = {})
       arm(silenceMs)
     }
     rec.onerror = (e) => (e.error === 'no-speech' || e.error === 'aborted' ? resolve(lastText) : reject(new Error(e.error)))
-    rec.onend = () => { clearTimeout(silence); resolve(lastText) }
+    rec.onend = () => { clearTimeout(silence); clearTimeout(cap); resolve(lastText) }
   })
   rec.start()
   arm(9000) // 아무 말도 없으면 9초 후 종료 / 9 秒没说话就结束
+  const cap = setTimeout(() => rec.stop(), maxMs)
   return { promise, stop: () => rec.stop(), abort: () => rec.abort() }
 }
 
