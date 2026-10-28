@@ -78,6 +78,11 @@ function errorMessage(err) {
 
 // ---------- API ----------
 async function handleApi(req, res, url) {
+  if (url.pathname === '/__api/ping') {
+    lastPing = Date.now()
+    res.writeHead(204); return res.end()
+  }
+
   if (url.pathname === '/__api/health') {
     return sendJson(res, 200, { ok: true, hasKey: hasApiKey(), model: MODEL, site: SITE, minutes: CONFIG.talkMinutes, charsPerMinute: CONFIG.charsPerMinute })
   }
@@ -242,8 +247,17 @@ function openAppWindow(appUrl) {
     '--autoplay-policy=no-user-gesture-required',
   ], { stdio: 'ignore', detached: true })
   child.unref()
-  // 앱 창을 닫으면 서버도 종료 / 关掉 App 窗口时服务器也一起退出
-  child.on('exit', () => { if (process.argv.includes('--quit-with-window')) process.exit(0) })
+}
+
+// 앱 창을 닫으면 서버도 종료: Chrome 프로세스는 이미 떠 있는 인스턴스에 창을 넘기고 바로 끝날 수 있어서,
+// 프로세스 종료 대신 앱 화면의 heartbeat(/__api/ping)가 끊기는 것으로 판단한다.
+// 关掉 App 窗口时服务器退出：Chrome 进程可能把窗口交给已运行的实例后立刻退出，所以改用页面心跳判断。
+let lastPing = 0
+if (process.argv.includes('--quit-with-window')) {
+  setInterval(() => {
+    // 창을 최소화하면 Chrome 이 타이머를 1분 간격으로 늦추므로 넉넉하게 3분 / 最小化时 Chrome 会把定时器降到每分钟一次，所以留 3 分钟
+    if (lastPing && Date.now() - lastPing > 180000) process.exit(0)
+  }, 10000).unref()
 }
 
 server.on('error', (err) => {

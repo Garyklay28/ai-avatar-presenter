@@ -403,4 +403,8 @@ async function boot() {
   avatar.say(state.script ? '준비됐어요! ▶ 를 누르면 발표를 시작할게요.' : '')
 }
 
+// 서버에 "창이 열려 있음" 알림 (창을 닫으면 서버 종료) / 告诉服务器窗口还开着（关窗后服务器退出）
+setInterval(() => fetch('/__api/ping').catch(() => {}), 5000)
+fetch('/__api/ping').catch(() => {})
+
 boot()
