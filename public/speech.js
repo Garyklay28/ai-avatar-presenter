@@ -40,7 +40,33 @@ export function createSpeaker({ onStart, onEnd, onBoundary }) {
 
   /** 한 문장 읽기 → 끝나면 resolve. cancel() 되면 false
    *  读一句，读完 resolve；被 cancel() 时返回 false */
+  // 녹화 모드 (?tts=say): 서버의 macOS 음성 파일을 재생하고 시각을 기록 → 녹화 스크립트가 같은 파일로 음성 트랙을 만듦
+  // 录屏模式：播放服务器生成的 macOS 语音文件并记录时间 → 录屏脚本用同样的文件合成音轨
+  const sayMode = new URLSearchParams(location.search).get('tts') === 'say'
+  window.__ttsLog = []
+  let audio = null
+
+  function speakSay(text) {
+    const my = token
+    return new Promise((resolve) => {
+      audio = new Audio(`/__api/tts?rate=${rate}&text=${encodeURIComponent(text)}`)
+      let done = false
+      let tick = null
+      const finish = (ok) => { if (done) return; done = true; clearInterval(tick); onEnd?.(); resolve(ok && my === token) }
+      audio.onplaying = () => {
+        window.__ttsLog.push({ text, t: performance.now() })
+        onStart?.(text)
+        tick = setInterval(() => onBoundary?.(), 260)
+      }
+      audio.onended = () => finish(true)
+      audio.onerror = () => finish(false)
+      audio.onpause = () => { if (!audio.ended) finish(false) }
+      audio.play().catch(() => finish(false))
+    })
+  }
+
   function speakOne(text) {
+    if (sayMode) return speakSay(text)
     const my = token
     return new Promise((resolve) => {
       const u = new SpeechSynthesisUtterance(text)
@@ -62,6 +88,7 @@ export function createSpeaker({ onStart, onEnd, onBoundary }) {
   function cancel() {
     token++
     synth.cancel()
+    audio?.pause()
   }
 
   return {

@@ -42,6 +42,7 @@ npm start                   # 서버 + Chrome 앱 창 / 服务器 + Chrome App �
 | `npm run serve` | 서버만 시작 → 브라우저에서 `http://localhost:5317/__avatar/` / 只启动服务器 |
 | `npm run mock` | API 없이 화면·음성 흐름만 테스트 (`MOCK_LLM=1`) / 不调 API 的测试模式 |
 | `./launch/build-mac-app.sh` | `AI Avatar Presenter.app` 다시 만들기 / 重新生成 macOS App |
+| `node scripts/record.mjs [out.mp4] [초/秒]` | 30초 녹화본 생성 (macOS · Chrome · ffmpeg 필요). 헤드리스 Chrome 화면을 CDP screencast 로 받고, 앱을 `?tts=say` 모드로 돌려 같은 Yuna 음성 WAV 로 음성 트랙을 맞춤 / 生成录屏（需要 macOS · Chrome · ffmpeg） |
 
 더블클릭 실행 / 双击运行:
 - macOS: `AI Avatar Presenter.app` (또는 / 或 `launch/start-mac.command`). 처음에는 우클릭 → 열기 (서명되지 않은 앱) / 第一次需右键 → 打开。로그 / 日志: `~/.ai-avatar-presenter/server.log`

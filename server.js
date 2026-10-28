@@ -80,6 +80,28 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { ok: true, hasKey: hasApiKey(), model: MODEL, site: SITE, minutes: CONFIG.talkMinutes })
   }
 
+  if (url.pathname === '/__api/tts') {
+    // 녹화 모드 전용: macOS `say` 로 WAV 생성 (녹화 영상에 같은 음성을 넣기 위해)
+    // 仅录屏模式：用 macOS `say` 生成 WAV（让录屏里的声音与画面一致）
+    if (process.platform !== 'darwin') return sendJson(res, 501, { error: 'macOS only' })
+    const text = url.searchParams.get('text') || ''
+    const wpm = Math.round(180 * Number(url.searchParams.get('rate') || 1))
+    const voice = url.searchParams.get('voice') || 'Yuna'
+    const name = createHash('sha1').update(`${voice}|${wpm}|${text}`).digest('hex').slice(0, 16) + '.wav'
+    const dir = path.join(CACHE_DIR, 'tts')
+    const file = path.join(dir, name)
+    if (!fs.existsSync(file)) {
+      fs.mkdirSync(dir, { recursive: true })
+      await new Promise((resolve, reject) => {
+        const p = spawn('say', ['-v', voice, '-r', String(wpm), '-o', file, '--file-format=WAVE', '--data-format=LEI16@24000', text])
+        p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`say exit ${code}`))))
+        p.on('error', reject)
+      })
+    }
+    res.writeHead(200, { 'content-type': 'audio/wav', 'x-tts-file': name, 'cache-control': 'no-store' })
+    return fs.createReadStream(file).pipe(res)
+  }
+
   if (url.pathname === '/__api/key' && req.method === 'POST') {
     // 앱 설정 화면에서 넣은 키를 .env 에 저장 / 把设置界面里填的 Key 写进 .env
     const { key } = await readJson(req)
