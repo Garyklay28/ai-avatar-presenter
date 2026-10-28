@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>发表稿审阅 · 대본 검토</title>
+  <link rel="icon" href="icon.svg">
+  <style>
+    :root { --ink: #0d0d0d; --paper: #fff; --key: #0057d4; --yellow: #ffd400; --blood: #b3121a; --muted: #6b6b6b; --line: #e3e3e3;
+      --font: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f6f6f4; color: var(--ink); font-family: var(--font); }
+    header { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 12px 20px;
+      background: var(--ink); color: #fff; }
+    header h1 { margin: 0; font-size: 17px; }
+    header .stat { font-size: 13px; color: #ccc; }
+    header .stat b { color: var(--yellow); }
+    header .grow { flex: 1; }
+    header label { font-size: 13px; color: #ddd; display: flex; align-items: center; gap: 6px; }
+    #save { border: 0; border-radius: 999px; padding: 8px 18px; background: var(--yellow); color: var(--ink); font-weight: 700; font-size: 14px; cursor: pointer; }
+    #saved { font-size: 12px; color: #9fd29f; min-width: 120px; }
+    #saved.dirty { color: #ffb4b4; }
+    .layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; max-width: 1500px; margin: 0 auto; padding: 20px; }
+    nav { position: sticky; top: 76px; align-self: start; }
+    nav a { display: block; padding: 8px 10px; margin-bottom: 4px; border-left: 4px solid transparent; color: var(--ink); text-decoration: none; font-size: 14px; background: var(--paper); }
+    nav a:hover { border-left-color: var(--yellow); }
+    nav a small { display: block; color: var(--muted); font-size: 12px; }
+    nav a .chg { color: var(--blood); font-weight: 700; }
+    .help { font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 14px; }
+    section.module { margin-bottom: 34px; }
+    section.module > h2 { margin: 0 0 10px; font-size: 18px; padding-left: 10px; border-left: 6px solid var(--key); display: flex; gap: 12px; align-items: baseline; }
+    section.module > h2 small { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .seg { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; padding: 10px 12px 12px; }
+    .seg.changed { border-color: var(--blood); box-shadow: inset 4px 0 0 var(--blood); }
+    .seg__head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+    .seg__num { font-weight: 700; color: var(--key); }
+    .seg__stop { color: var(--muted); }
+    .seg__flag { color: var(--blood); font-weight: 700; display: none; }
+    .seg.changed .seg__flag { display: inline; }
+    .seg__head .grow { flex: 1; }
+    .seg__head button { border: 1px solid var(--line); background: #fafafa; border-radius: 4px; font-size: 12px; padding: 3px 8px; cursor: pointer; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .col label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+    .col--zh label { color: var(--blood); }
+    .col--ko label { color: var(--muted); }
+    textarea { width: 100%; min-height: 86px; resize: vertical; padding: 8px 10px; font: 15px/1.65 var(--font); border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+    .col--zh textarea { background: #fffdf0; border-color: #e8d98a; }
+    .col--ko textarea { color: #333; }
+    textarea:focus { outline: 2px solid var(--key); outline-offset: -1px; }
+    .orig { display: none; margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--muted); background: #f4f4f4; padding: 6px 8px; border-radius: 4px; white-space: pre-wrap; }
+    .seg.changed .orig.has { display: block; }
+    .orig::before { content: '原文 / 원문: '; font-weight: 700; }
+    .note { margin-top: 8px; }
+    .note input { width: 100%; padding: 6px 10px; font: 13px var(--font); border: 1px dashed #bbb; border-radius: 4px; }
+    .meta { font-size: 12px; color: var(--muted); margin-top: 4px; text-align: right; }
+    body.only-changed .seg:not(.changed) { display: none; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav { position: static; } .cols { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>发表稿审阅 · 대본 검토</h1>
+    <span class="stat">韩文 <b id="kochars">0</b> 字 · 预计 <b id="mins">0</b> 分钟</span>
+    <span class="stat">已修改 <b id="nchg">0</b> 段</span>
+    <span class="grow"></span>
+    <label><input type="checkbox" id="only"> 只看已修改</label>
+    <span id="saved">—</span>
+    <button id="save">保存 (⌘S)</button>
+  </header>
+
+  <div class="layout">
+    <nav id="nav"></nav>
+    <main id="main"></main>
+  </div>
+
+  <script type="module">
+    // 모듈 구분은 앱 발표 순서와 같음 / 模块划分与 App 发表顺序一致
+    const MODULES = [
+      { id: 'm1', zh: '① 开场与简介', ko: '인사 · 프로필', test: (s) => s === 'hero' || s.startsWith('profile') },
+      { id: 'm2', zh: '② 影片', ko: 'Film', test: (s) => s.startsWith('film') },
+      { id: 'm3', zh: '③ 剧照图片', ko: 'Images', test: (s) => s.startsWith('images') },
+      { id: 'm4', zh: '④ 课程作业 W2–W9', ko: 'Projects', test: (s) => s === 'projects-head' || /^w\d/.test(s) || s === 'extra' },
+      { id: 'm5', zh: '⑤ 总结与提问', ko: '마무리', test: (s) => s === 'contact' },
+    ]
+    const LABEL = {
+      hero: '首页开场', 'profile-intro': '简介', 'profile-education': '学历', 'profile-awards': '获奖', 'profile-work-experience': '工作经历', 'profile-film-credits': '影片经历',
+      'film-01': '持枪信使', 'film-02': '消化', 'film-03': '落暮', 'film-04': 'Who I Am', 'film-05': '种茄子的人', 'film-06': '回声', 'film-07': '阶梯间之影', 'film-08': '胡同', 'film-09': '未来公开课',
+      'images-01': '持枪信使 剧照', 'images-02': '回声 剧照', 'images-03': '落暮 剧照',
+      'projects-head': '作业总览', w02: 'W2 我是谁', w03: 'W3 提示词结构化', w05: 'W5 第一人称走私配送', w06: 'W6 复刻링이的游戏', 'w06-2': 'W6 提取系统提示词',
+      w07: 'W7 字幕翻译技能包', w08: 'W8 Figma 画布·宣传册·名片', w09: 'W9 Next Big Thing', extra: '个人技能 NBA·足球 PDF', contact: '总结 · 提问 · 致谢',
+    }
+    const $ = (s, el = document) => el.querySelector(s)
+    let data, cpm = 505, timer = null, dirty = false
+
+    const isChanged = (g) => g.zh !== g.zhOriginal || g.ko !== g.koOriginal || (g.note || '').trim() !== ''
+
+    function stats() {
+      const chars = data.segments.reduce((n, g) => n + g.ko.length, 0)
+      $('#kochars').textContent = chars.toLocaleString()
+      $('#mins').textContent = (chars / cpm).toFixed(1)
+      $('#nchg').textContent = data.segments.filter(isChanged).length
+      for (const m of MODULES) {
+        const segs = data.segments.filter((g) => m.test(g.stop))
+        const c = segs.reduce((n, g) => n + g.ko.length, 0)
+        const chg = segs.filter(isChanged).length
+        $(`#nav-${m.id} small`).innerHTML = `${segs.length} 段 · 约 ${(c / cpm).toFixed(1)} 分钟${chg ? ` · <span class="chg">改 ${chg}</span>` : ''}`
+        $(`#${m.id} h2 small`).textContent = `${m.ko} · ${segs.length} 段 · 约 ${(c / cpm).toFixed(1)} 分钟`
+      }
+    }
+
+    function markDirty() {
+      dirty = true
+      $('#saved').textContent = '未保存…'
+      $('#saved').classList.add('dirty')
+      clearTimeout(timer)
+      timer = setTimeout(save, 1500) // 자동 저장 / 自动保存
+      stats()
+    }
+
+    async function save() {
+      clearTimeout(timer)
+      const res = await fetch('/__api/review', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ segments: data.segments.map(({ i, ko, zh, note }) => ({ i, ko, zh, note })) }),
+      })
+      const r = await res.json()
+      if (!res.ok) { $('#saved').textContent = '保存失败'; return }
+      dirty = false
+      $('#saved').classList.remove('dirty')
+      $('#saved').textContent = `已保存 ${new Date(r.savedAt).toLocaleTimeString()}`
+    }
+
+    function card(g) {
+      const el = document.createElement('div')
+      el.className = 'seg'
+      el.innerHTML = `
+        <div class="seg__head">
+          <span class="seg__num">#${g.i + 1}</span>
+          <span class="seg__stop">${LABEL[g.stop] || g.stop}</span>
+          <span class="seg__flag">● 已修改</span>
+          <span class="grow"></span>
+          <button data-act="revert">还原本段</button>
+        </div>
+        <div class="cols">
+          <div class="col col--zh"><label>中文（在这里改）</label><textarea data-k="zh"></textarea><div class="orig" data-o="zh"></div></div>
+          <div class="col col--ko"><label>한국어（实际朗读的文字，Claude 会按中文修改来改）</label><textarea data-k="ko"></textarea><div class="orig" data-o="ko"></div>
+            <div class="meta"></div></div>
+        </div>
+        <div class="note"><input data-k="note" placeholder="给 Claude 的说明（可选），例如：这段删掉 / 语气再轻松一点 / 加一句关于…"></div>`
+      const fit = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px' }
+      const refresh = () => {
+        el.classList.toggle('changed', isChanged(g))
+        for (const k of ['zh', 'ko']) {
+          const o = $(`[data-o="${k}"]`, el)
+          o.textContent = g[`${k}Original`]
+          o.classList.toggle('has', g[k] !== g[`${k}Original`])
+        }
+        $('.meta', el).textContent = `${g.ko.length} 字 · 约 ${Math.round(g.ko.length / cpm * 60)} 秒`
+      }
+      el.querySelectorAll('[data-k]').forEach((input) => {
+        input.value = g[input.dataset.k] || ''
+        input.addEventListener('input', () => {
+          g[input.dataset.k] = input.value
+          if (input.tagName === 'TEXTAREA') fit(input)
+          refresh(); markDirty()
+        })
+      })
+      $('[data-act="revert"]', el).onclick = () => {
+        if (!confirm(`把第 ${g.i + 1} 段还原成原稿？`)) return
+        g.zh = g.zhOriginal; g.ko = g.koOriginal; g.note = ''
+        el.querySelectorAll('[data-k]').forEach((input) => { input.value = g[input.dataset.k]; if (input.tagName === 'TEXTAREA') fit(input) })
+        refresh(); markDirty()
+      }
+      requestAnimationFrame(() => el.querySelectorAll('textarea').forEach(fit))
+      refresh()
+      return el
+    }
+
+    async function boot() {
+      data = await (await fetch('/__api/review')).json()
+      cpm = data.charsPerMinute || cpm
+      document.title = `发表稿审阅 · ${data.title}`
+      for (const m of MODULES) {
+        const a = document.createElement('a')
+        a.href = `#${m.id}`; a.id = `nav-${m.id}`
+        a.innerHTML = `${m.zh}<small></small>`
+        $('#nav').appendChild(a)
+        const sec = document.createElement('section')
+        sec.className = 'module'; sec.id = m.id
+        sec.innerHTML = `<h2>${m.zh} <small></small></h2>`
+        data.segments.filter((g) => m.test(g.stop)).forEach((g) => sec.appendChild(card(g)))
+        $('#main').appendChild(sec)
+      }
+      const help = document.createElement('div')
+      help.className = 'help'
+      help.innerHTML = `改中文即可，修改会自动保存。改完后告诉 Claude「稿子改好了」，Claude 会按中文改动更新韩文，并重新检查时长（要求 10–12 分钟）。<br>也可以直接改韩文，或在说明栏写要求。<br><br>중국어만 고치면 자동 저장됩니다. 끝나면 Claude에게 알려 주세요.`
+      $('#nav').appendChild(help)
+      $('#saved').textContent = data.savedAt ? `上次保存 ${new Date(data.savedAt).toLocaleString()}` : '尚未修改'
+      stats()
+    }
+
+    $('#save').onclick = save
+    $('#only').onchange = (e) => document.body.classList.toggle('only-changed', e.target.checked)
+    window.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save() } })
+    window.addEventListener('beforeunload', (e) => { if (dirty) { save(); e.preventDefault() } })
+    boot()
+  </script>
+</body>
+</html>

@@ -83,6 +83,30 @@ async function handleApi(req, res, url) {
     res.writeHead(204); return res.end()
   }
 
+  if (url.pathname === '/__api/review') {
+    // 대본 검토: 한국어 대본 + 중국어 번역을 나란히 편집 / 讲稿审阅：韩文讲稿与中文译文对照编辑
+    const reviewDir = path.join(here, 'review')
+    const reviewFile = path.join(reviewDir, 'script-review.json')
+    if (req.method === 'POST') {
+      const { segments } = await readJson(req)
+      const current = JSON.parse(fs.readFileSync(reviewFile, 'utf8'))
+      for (const s of segments) Object.assign(current.segments[s.i], { ko: s.ko, zh: s.zh, note: s.note })
+      current.savedAt = new Date().toISOString()
+      fs.writeFileSync(reviewFile, JSON.stringify(current, null, 2))
+      return sendJson(res, 200, { ok: true, savedAt: current.savedAt })
+    }
+    if (!fs.existsSync(reviewFile)) {
+      const script = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, 'script-latest.json'), 'utf8'))
+      const zh = JSON.parse(fs.readFileSync(path.join(reviewDir, 'zh-draft.json'), 'utf8'))
+      fs.writeFileSync(reviewFile, JSON.stringify({
+        title: script.title,
+        scriptCreatedAt: script.createdAt,
+        segments: script.segments.map((g, i) => ({ i, stop: g.stop, koOriginal: g.say, ko: g.say, zhOriginal: zh[i] ?? '', zh: zh[i] ?? '', note: '' })),
+      }, null, 2))
+    }
+    return sendJson(res, 200, { ...JSON.parse(fs.readFileSync(reviewFile, 'utf8')), charsPerMinute: CONFIG.charsPerMinute })
+  }
+
   if (url.pathname === '/__api/health') {
     return sendJson(res, 200, { ok: true, hasKey: hasApiKey(), model: MODEL, site: SITE, minutes: CONFIG.talkMinutes, charsPerMinute: CONFIG.charsPerMinute })
   }

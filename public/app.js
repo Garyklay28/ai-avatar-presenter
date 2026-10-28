@@ -23,7 +23,7 @@ const state = {
   qa: [], // {role, content}
   busy: false, // 질문 처리 중 / 正在回答
   listener: null,
-  charsPerMinute: 475, // 서버 config 로 덮어씀 / 由服务器 config 覆盖
+  charsPerMinute: 505, // 서버 config 로 덮어씀 / 由服务器 config 覆盖
 }
 window.__slate = state // 디버그용 / 调试用
 
