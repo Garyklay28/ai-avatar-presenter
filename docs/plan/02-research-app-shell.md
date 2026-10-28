@@ -14,5 +14,5 @@ Windows·Mac 모두에서 돌고, 음성 인식까지 되는 앱 껍데기는 �
 | (c) **Node 로컬 서버 + Chrome/Edge 앱 모드 창** | Chrome 음성 인식(ko-KR) 그대로 사용, 크기 작음, Win/Mac 동일 코드 | Chrome 또는 Edge 필요 |
 
 ## Answer
-**(c)**. `node server.js --open` 이 Chrome(없으면 Edge)을 `--app=` 모드로 띄워 주소창 없는 전용 창으로 보이게 한다. 별도 프로필(`~/.ai-avatar-presenter/browser-profile`)이라 평소 Chrome 과 섞이지 않고 마이크 권한도 한 번만 묻는다. Mac 은 `.app` 번들, Windows 는 `.bat` 으로 더블클릭 실행.
+**(c)**. `node server.js --open` 이 Chrome(없으면 Edge)을 `--app=` 모드로 띄워 주소창 없는 전용 창으로 보이게 한다. 별도 프로필(`–/.ai-avatar-presenter/browser-profile`)이라 평소 Chrome 과 섞이지 않고 마이크 권한도 한 번만 묻는다. Mac 은 `.app` 번들, Windows 는 `.bat` 으로 더블클릭 실행.
 选 (c)：用 Chrome/Edge 的 `--app` 模式打开无地址栏的专用窗口，Mac 用 .app、Windows 用 .bat 双击启动。

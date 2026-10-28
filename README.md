@@ -45,7 +45,7 @@ npm start                   # 서버 + Chrome 앱 창 / 服务器 + Chrome App �
 | `node scripts/record.mjs [out.mp4] [초/秒]` | 30초 녹화본 생성 (macOS · Chrome · ffmpeg 필요). 헤드리스 Chrome 화면을 CDP screencast 로 받고, 앱을 `?tts=say` 모드로 돌려 같은 Yuna 음성 WAV 로 음성 트랙을 맞춤 / 生成录屏（需要 macOS · Chrome · ffmpeg） |
 
 더블클릭 실행 / 双击运行:
-- macOS: `AI Avatar Presenter.app` (또는 / 或 `launch/start-mac.command`). 처음에는 우클릭 → 열기 (서명되지 않은 앱) / 第一次需右键 → 打开。로그 / 日志: `~/.ai-avatar-presenter/server.log`
+- macOS: `AI Avatar Presenter.app` (또는 / 或 `launch/start-mac.command`). 처음에는 우클릭 → 열기 (서명되지 않은 앱) / 第一次需右键 → 打开。로그 / 日志: `–/.ai-avatar-presenter/server.log`
 - Windows: `launch/start-windows.bat`
 
 첫 실행 시 `node_modules` 가 없으면 자동으로 `npm install --omit=dev` 를 실행합니다. / 首次运行会自动安装依赖。

@@ -15,7 +15,7 @@ Status: resolved · 방식 / 方式: research · prototype
   影片/剧照的说明只在详情弹窗里 → 读取时逐个打开再关闭。
 
 ## Answer
-`reader.js` 가 4개 탭을 돌며 29개 구역(hero, profile×5, film×9, images×3, projects 헤더 + W2~W9 + 개인 스킬, contact)을 `{id, tab, selector, text}` 로 만든다. 과제 MD·자막처럼 화면에 다 안 보이는 자료는 `config.json` 의 `contextDocs` 로 함께 넘긴다.
+`reader.js` 가 4개 탭을 돌며 29개 구역(hero, profile×5, film×9, images×3, projects 헤더 + W2–W9 + 개인 스킬, contact)을 `{id, tab, selector, text}` 로 만든다. 과제 MD·자막처럼 화면에 다 안 보이는 자료는 `config.json` 의 `contextDocs` 로 함께 넘긴다.
 读出 29 个区域；页面上看不全的作业 MD 和字幕通过 `config.json` 一起交给 Claude。
 
 시제품 확인 / 原型验证: 로컬에서 29개 구역 추출, 영화 상세 설명·스틸 구도 설명까지 포함 확인.

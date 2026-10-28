@@ -4,3 +4,4 @@ cache/mock-*
 .DS_Store
 *.log
 cache/tts/
+dist/

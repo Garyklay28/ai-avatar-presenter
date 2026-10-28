@@ -359,7 +359,7 @@ fillVoices()
 async function loadScript(regenerate = false) {
   $('loader').hidden = false
   loaderStep(regenerate || !state.script
-    ? 'Claude 가 사이트 내용을 각색해 발표 대본을 쓰는 중…\n(처음 한 번 30초~1분) / Claude 正在改编讲稿…'
+    ? 'Claude 가 사이트 내용을 각색해 발표 대본을 쓰는 중…\n(11분 분량이라 3–4분 걸립니다) / Claude 正在改编讲稿（约 3–4 分钟）…'
     : '대본 불러오는 중… / 加载讲稿…')
   try {
     const res = await fetch('/__api/script', {
