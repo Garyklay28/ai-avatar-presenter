@@ -23,6 +23,7 @@ const state = {
   qa: [], // {role, content}
   busy: false, // 질문 처리 중 / 正在回答
   listener: null,
+  charsPerMinute: 475, // 서버 config 로 덮어씀 / 由服务器 config 覆盖
 }
 window.__slate = state // 디버그용 / 调试用
 
@@ -48,7 +49,8 @@ function renderScript() {
   const s = state.script
   $('script-title').textContent = s.title
   const chars = s.segments.reduce((n, g) => n + g.say.length, 0)
-  $('script-meta').textContent = `${s.segments.length} segments · ${chars.toLocaleString()}자 · 약 ${Math.round(chars / 330 / speaker.rate)}분${s.cached ? ' · cached' : ''}${s.stale ? ' (오프라인: 이전 대본 / 离线：上次讲稿)' : ''}`
+  const minutes = chars / (state.charsPerMinute * (speaker.rate / 1.15))
+  $('script-meta').textContent = `${s.segments.length} segments · ${chars.toLocaleString()}자 · 약 ${minutes.toFixed(1)}분${s.cached ? ' · cached' : ''}${s.stale ? ' (오프라인: 이전 대본 / 离线：上次讲稿)' : ''}`
   const ol = $('script-list')
   ol.innerHTML = ''
   s.segments.forEach((g, i) => {
@@ -89,6 +91,7 @@ async function playFrom(seg, sentence = 0) {
   state.playing = true
   renderProgress()
   const segs = state.script.segments
+  if (seg === 0 && sentence === 0) state.startedAt = performance.now()
   for (let i = seg; i < segs.length; i++) {
     state.seg = i
     renderProgress()
@@ -107,6 +110,8 @@ async function playFrom(seg, sentence = 0) {
     if (my !== speaker.token) return
   }
   // 끝 / 结束
+  if (state.startedAt) console.log(`[slate] 발표 시간 / 发表时长: ${((performance.now() - state.startedAt) / 60000).toFixed(2)}분`)
+  state.lastRunMs = state.startedAt ? performance.now() - state.startedAt : null
   state.playing = false
   state.seg = segs.length
   renderProgress()
@@ -321,6 +326,7 @@ $('btn-regen').onclick = async () => {
 $('rate').oninput = (e) => {
   speaker.setRate(Number(e.target.value))
   $('rate-out').textContent = e.target.value
+  if (state.script) renderScript() // 예상 시간 갱신 / 更新预计时长
 }
 $('voice').onchange = (e) => speaker.setVoice(e.target.value)
 $('key-form').onsubmit = async (e) => {
@@ -377,6 +383,7 @@ async function loadScript(regenerate = false) {
 async function boot() {
   const health = await fetch('/__api/health').then((r) => r.json()).catch(() => null)
   $('status').textContent = health ? `${health.model} · API ${health.hasKey ? 'OK' : '키 없음'}` : '서버 연결 실패'
+  if (health?.charsPerMinute) state.charsPerMinute = health.charsPerMinute
   if (health && !health.hasKey) {
     toast('☰ → 설정에서 Claude API Key 를 넣어 주세요.\n请在 ☰ → 设置 里填入 Claude API Key。', 12000)
     openSettings()

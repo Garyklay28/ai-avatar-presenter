@@ -20,7 +20,7 @@ export function splitSentences(text) {
 export function createSpeaker({ onStart, onEnd, onBoundary }) {
   const synth = window.speechSynthesis
   let voice = null
-  let rate = 1.05
+  let rate = 1.15
   let token = 0
 
   function voices() {
@@ -30,12 +30,28 @@ export function createSpeaker({ onStart, onEnd, onBoundary }) {
   function pickDefault() {
     const list = voices()
     const saved = localStorageGet('voice')
+    // 기본은 macOS 로컬 음성 Yuna: 네트워크 없이 안정적이고, 발표 시간(약 470자/분)을 이 음성으로 맞춤
+    // 默认用 macOS 本地 Yuna：不依赖网络更稳定，发表时长按这个声音校准
     voice = list.find((v) => v.name === saved) ||
+      list.find((v) => /Yuna|유나/i.test(v.name)) ||
+      list.find((v) => /Premium|Enhanced/i.test(v.name)) ||
       list.find((v) => /Google/.test(v.name)) ||
-      list.find((v) => /Yuna|유나|Premium|Enhanced/i.test(v.name)) ||
       list.find((v) => /SunHi|InJoon|Online/i.test(v.name)) ||
       list[0] || null
     return voice
+  }
+
+  /** 한글이 없는 문장(영어·중국어 답변)은 그 언어 목소리로 / 没有韩文的句子（英文、中文回答）换成对应语言的声音 */
+  function voiceFor(text) {
+    if (/[가-힣]/.test(text)) return { v: voice, lang: 'ko-KR' }
+    const all = synth.getVoices()
+    if (/[一-鿿]/.test(text)) {
+      return { v: all.find((x) => /^zh[-_]CN/i.test(x.lang) && /Tingting|Ting-Ting|婷婷/i.test(x.name)) || all.find((x) => /^zh[-_]CN/i.test(x.lang)), lang: 'zh-CN' }
+    }
+    if (/[a-z]{3}/i.test(text)) {
+      return { v: all.find((x) => x.name === 'Samantha') || all.find((x) => /^en[-_]US/i.test(x.lang) && x.localService) || all.find((x) => /^en/i.test(x.lang)), lang: 'en-US' }
+    }
+    return { v: voice, lang: 'ko-KR' }
   }
 
   /** 한 문장 읽기 → 끝나면 resolve. cancel() 되면 false
@@ -70,8 +86,9 @@ export function createSpeaker({ onStart, onEnd, onBoundary }) {
     const my = token
     return new Promise((resolve) => {
       const u = new SpeechSynthesisUtterance(text)
-      u.lang = 'ko-KR'
-      if (voice) u.voice = voice
+      const pick = voiceFor(text)
+      u.lang = pick.lang
+      if (pick.v) u.voice = pick.v
       u.rate = rate
       let done = false
       const finish = (ok) => { if (done) return; done = true; clearInterval(keepAlive); onEnd?.(); resolve(ok && my === token) }

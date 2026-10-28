@@ -38,6 +38,8 @@ function loadDocs() {
   docsPromise ??= Promise.all(
     CONFIG.contextDocs.map(async (d) => {
       try {
+        // file: 앱 폴더 안 문서 / 应用目录内的文档, path: 포트폴리오 사이트 경로 / 作品集网站路径
+        if (d.file) return { ...d, path: d.file, text: fs.readFileSync(path.join(here, d.file), 'utf8') }
         const r = await fetch(SITE + d.path)
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return { ...d, text: await r.text() }
@@ -77,7 +79,7 @@ function errorMessage(err) {
 // ---------- API ----------
 async function handleApi(req, res, url) {
   if (url.pathname === '/__api/health') {
-    return sendJson(res, 200, { ok: true, hasKey: hasApiKey(), model: MODEL, site: SITE, minutes: CONFIG.talkMinutes })
+    return sendJson(res, 200, { ok: true, hasKey: hasApiKey(), model: MODEL, site: SITE, minutes: CONFIG.talkMinutes, charsPerMinute: CONFIG.charsPerMinute })
   }
 
   if (url.pathname === '/__api/tts') {
