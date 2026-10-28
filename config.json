@@ -1,0 +1,22 @@
+{
+  "talkMinutes": 6,
+  "persona": {
+    "avatarName": "슬레이트",
+    "ownerKo": "곽우화",
+    "ownerZh": "郭宇骅",
+    "ownerEn": "Yuhua Guo",
+    "ownerRole": "영화 감독·편집·사운드 감독",
+    "course": "프롬프트 엔지니어링"
+  },
+  "contextDocs": [
+    { "path": "/assignments/w02/who-i-am.vtt", "about": "W2 자기소개 영상 자막 / W2 自我介绍影片字幕" },
+    { "path": "/assignments/w03/WORKSHEET.md", "about": "W3 프롬프트 구조화 기록지 (A vs B) / W3 提示词结构化记录表" },
+    { "path": "/assignments/w06/lingyi.md", "about": "W6 링이 게임 재현 기록과 프롬프트 13개 / W6 复刻링이游戏" },
+    { "path": "/assignments/w06-prompt/SYSTEM_PROMPT.md", "about": "W6 커피 게임 코드에서 추출한 시스템 프롬프트 / W6 系统提示词" },
+    { "path": "/assignments/w06-prompt/CHECKLIST.md", "about": "W6 시스템 프롬프트 검토 체크리스트 / W6 检查清单" },
+    { "path": "/assignments/w07/README.md", "about": "W7 자막 번역 스킬 패키지 (A 프롬프트만 vs B 스킬) / W7 字幕翻译技能包" },
+    { "path": "/assignments/w08/PROMPTS.md", "about": "W8 Figma 캔버스·브로슈어·명함 프롬프트 / W8 Figma 提示词" },
+    { "path": "/assignments/w09/PROMPTS.md", "about": "W9 TapNow 단편 Next Big Thing 프롬프트 / W9 TapNow 短片提示词" },
+    { "path": "/assignments/extra/today-news-pdf-SKILL.md", "about": "개인 스킬: 오늘의 NBA·축구 뉴스 PDF / 个人技能" }
+  ]
+}

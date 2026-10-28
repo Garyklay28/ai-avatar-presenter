@@ -1,0 +1,14 @@
+#!/bin/bash
+# App 이 놓인 폴더 = 프로젝트 폴더 / App 所在文件夹 = 项目文件夹
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$ROOT" || exit 1
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.volta/bin:$PATH"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+LOG="$HOME/.ai-avatar-presenter/server.log"
+mkdir -p "$(dirname "$LOG")"
+if ! command -v node >/dev/null; then
+  osascript -e 'display dialog "Node.js 20.12 이상이 필요합니다.\n需要 Node.js 20.12+\n\nhttps://nodejs.org" buttons {"OK"} with icon caution'
+  open "https://nodejs.org/ko/download"; exit 1
+fi
+[ -d node_modules ] || npm install --omit=dev >>"$LOG" 2>&1
+exec node server.js --open --quit-with-window >>"$LOG" 2>&1

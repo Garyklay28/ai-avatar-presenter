@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Avatar Presenter — Slate</title>
+  <link rel="icon" href="icon.svg">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <iframe id="site" src="/" title="Portfolio"></iframe>
+
+  <div id="avatar" class="avatar"></div>
+
+  <div id="loader" class="loader">
+    <div class="loader__card">
+      <div class="loader__title">SLATE · AI Avatar Presenter</div>
+      <div id="loader-step" class="loader__step">준비 중… / 准备中…</div>
+      <div class="loader__bar"><i></i></div>
+    </div>
+  </div>
+
+  <div id="dock" class="dock" hidden>
+    <button id="btn-play" class="dock__btn dock__btn--main" title="발표 시작 / 开始 (P)">▶ 발표 시작</button>
+    <button id="btn-prev" class="dock__btn" title="이전 / 上一段 (←)">⏮</button>
+    <button id="btn-next" class="dock__btn" title="다음 / 下一段 (→)">⏭</button>
+    <span id="progress" class="dock__progress">0 / 0</span>
+    <span class="dock__sep"></span>
+    <button id="btn-mic" class="dock__btn dock__btn--mic" title="음성 질문 / 语音提问 (Space)">🎤 질문</button>
+    <button id="btn-type" class="dock__btn" title="글로 질문 / 打字提问 (Enter)">⌨</button>
+    <button id="btn-stop" class="dock__btn" title="말 멈추기 / 停止说话 (Esc)">■</button>
+    <span class="dock__sep"></span>
+    <button id="btn-panel" class="dock__btn" title="대본·설정 / 讲稿·设置">☰</button>
+    <form id="ask-form" class="dock__ask" hidden>
+      <input id="ask-input" type="text" placeholder="질문을 입력하세요 / 输入问题" autocomplete="off">
+      <button class="dock__btn">보내기</button>
+    </form>
+  </div>
+
+  <aside id="panel" class="panel" hidden>
+    <header class="panel__head">
+      <strong>SLATE</strong>
+      <span id="status" class="panel__status"></span>
+      <button id="btn-close" class="panel__close" aria-label="닫기">×</button>
+    </header>
+    <nav class="panel__tabs">
+      <button data-tab="script" class="is-on">대본 / 讲稿</button>
+      <button data-tab="qa">질의응답 / 问答</button>
+      <button data-tab="settings">설정 / 设置</button>
+    </nav>
+    <section data-pane="script" class="panel__pane">
+      <h3 id="script-title" class="panel__title"></h3>
+      <p id="script-meta" class="panel__meta"></p>
+      <ol id="script-list" class="panel__list"></ol>
+      <button id="btn-regen" class="panel__btn">↻ 대본 다시 만들기 / 重新生成讲稿</button>
+    </section>
+    <section data-pane="qa" class="panel__pane" hidden>
+      <ol id="qa-list" class="panel__qa"></ol>
+    </section>
+    <section data-pane="settings" class="panel__pane" hidden>
+      <form id="key-form" class="panel__field">Claude API Key
+        <input id="key-input" type="password" placeholder="sk-ant-..." autocomplete="off">
+        <button class="panel__btn">키 저장 / 保存 Key</button>
+        <span class="panel__hint">.env 파일에만 저장되고, 이 컴퓨터 밖으로는 Anthropic API 호출에만 쓰입니다. / 只保存在本机 .env，仅用于调用 Anthropic API。</span>
+      </form>
+      <label class="panel__field">목소리 / 声音
+        <select id="voice"></select>
+      </label>
+      <label class="panel__field">속도 / 语速 <output id="rate-out">1.05</output>
+        <input id="rate" type="range" min="0.8" max="1.4" step="0.05" value="1.05">
+      </label>
+      <button id="btn-test-voice" class="panel__btn">🔊 목소리 듣기 / 试听</button>
+      <p class="panel__hint">단축키 / 快捷键 — P 시작·일시정지 · ← → 이전·다음 · Space 음성 질문 · Enter 글 질문 · Esc 멈춤</p>
+    </section>
+  </aside>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
