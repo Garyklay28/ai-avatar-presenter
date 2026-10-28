@@ -49,6 +49,10 @@
     {
       "file": "docs/ABOUT_APP.md",
       "about": "이 발표 앱(슬레이트) 자체에 대한 사실 / 关于这个 App 本身"
+    },
+    {
+      "file": "docs/OWNER_NOTES.md",
+      "about": "본인이 확인한 정정·보충 (사이트보다 우선) / 本人确认的更正（优先于网站）"
     }
   ]
 }
