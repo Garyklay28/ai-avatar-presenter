@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js --open --quit-with-window",
     "serve": "node server.js",
-    "mock": "MOCK_LLM=1 node server.js"
+    "mock": "MOCK_LLM=1 node server.js",
+    "test": "node --test tests/guard.test.mjs"
   },
   "author": "Yuhua Guo (곽우화)",
   "license": "MIT",
